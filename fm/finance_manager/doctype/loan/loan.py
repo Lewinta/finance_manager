@@ -143,6 +143,42 @@ class Loan(AccountsController):
 		import fm.accounts
 		fm.accounts.make_simple_repayment_schedule(self)
 		
+	def make_fake_repayment_schedule(self, capital, interes):
+		capital_acumulado = capital = flt(capital)
+		interes_acumulado = interes = flt(interes)
+		repayment_amount = self.monthly_repayment_amount = capital + interes 
+		balance_capital = capital * self.repayment_periods
+		balance_interes = self.total_interest_payable = interes * self.repayment_periods
+		pagos_acumulados = repayment_amount
+ 		self.total_payment	=  repayment_amount	* self.repayment_periods
+
+		rows = frappe.get_list('Tabla Amortizacion', {'parent': self.name}, ['name', 'idx'] )
+		# No se como estan guardados en la base de datos, dejame organizarlos por idx
+		rows = sorted(rows,  key = lambda k: k['idx'])
+		for pago in rows:
+ 			row = frappe.get_doc('Tabla Amortizacion', pago.name)
+ 			row.cuota = repayment_amount  
+ 			row.capital = capital  
+ 			row.interes = interes
+ 			row.balance_capital = balance_capital   
+ 			row.balance_interes = balance_interes
+ 			row.capital_acumulado = capital_acumulado   
+ 			row.interes_acumulado = interes_acumulado 
+ 			row.pagos_acumulados  = pagos_acumulados
+ 			# Calculo de nuevo el monto pendiente, te recomiento que corras el scheduler para recalcular la mora
+ 			row.monto_pendiente	  = repayment_amount
+ 			row.fine = 0
+ 			balance_capital -= capital
+ 			balance_interes -= interes
+ 			capital_acumulado += capital
+ 			interes_acumulado += interes
+ 			pagos_acumulados  += repayment_amount
+
+ 			row.db_update()
+ 		self.db_update()
+ 		print("Success!, I strongly suggest you to run the scheduler again to calculate fines")
+
+
 	def make_repayment_schedule(self):
 		self.repayment_schedule = []
 		payment_date = self.disbursement_date
@@ -177,7 +213,7 @@ class Loan(AccountsController):
 			self.customer_cedula = frappe.db.get_value("Customer", self.customer, "cedula")
 
 		for row in self.repayment_schedule:
-			if isinstance(row.fecha, unicode):
+			if isinstance(row.fecha, basestring):
 				row.fecha_day = row.fecha.split("-")[2]
 				row.fecha_year = row.fecha.split("-")[0]
 			else:
@@ -186,7 +222,7 @@ class Loan(AccountsController):
 
 		if not self.posting_date_str:
 			# ok, let's validate if the posting date is a string
-			if isinstance(self.posting_date, unicode):
+			if isinstance(self.posting_date, basestring):
 				# it is a string, so let's convert to a datetime object
 				self.posting_date = datetime.strptime(self.posting_date, "%Y-%m-%d")
 

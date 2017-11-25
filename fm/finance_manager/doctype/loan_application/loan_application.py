@@ -79,10 +79,11 @@ class LoanApplication(Document):
 		references = frappe.get_list("Referencia", { "parent": self.customer }, ["first_name"])
 
 		if not references or len(references) < 2:
-			frappe.msgprint("Especifique al menos dos referecias para el cliente <a href='/desk#Form/Customer/%s'>%s</a>" 
-				% (self.customer, self.customer_name))
+			# frappe.msgprint("Especifique al menos dos referecias para el cliente <a href='/desk#Form/Customer/%s'>%s</a>" 
+			# 	% (self.customer, self.customer_name))
 
-			frappe.throw("No se validó el documento!")
+			# frappe.throw("No se validó el documento!")
+			pass
 			
 
 @frappe.whitelist()

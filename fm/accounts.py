@@ -294,7 +294,7 @@ def loan_disbursed_amount(loan):
 		(loan), as_dict=1)[0]
 
 @frappe.whitelist()
-def make_payment_entry(doctype, docname, paid_amount, capital_amount, interest_amount, posting_date=0.000, fine=0.000, fine_discount=0.000, insurance=0.000, gps=0.000, recuperacion=0.000, create_jv=True):
+def make_payment_entry(doctype, docname, paid_amount, capital_amount, interest_amount, posting_date=0.000, fine=0.000, fine_discount=0.000, other_discounts=0.000, insurance=0.000, gps=0.000, recuperacion=0.000, create_jv=True):
 	from erpnext.accounts.utils import get_account_currency
 	from fm.api import get_voucher_type
 
@@ -325,6 +325,7 @@ def make_payment_entry(doctype, docname, paid_amount, capital_amount, interest_a
 		goods_received_but_not_billed = frappe.db.get_single_value("FM Configuration", "goods_received_but_not_billed")
 		interest_income_account = frappe.db.get_single_value("FM Configuration", "interest_income_account")
 		default_discount_account = frappe.db.get_single_value("FM Configuration", "default_discount_account")
+
 		if loan.customer_currency == "USD":
 			default_discount_account = default_discount_account.replace("DOP","USD")
 
@@ -377,6 +378,14 @@ def make_payment_entry(doctype, docname, paid_amount, capital_amount, interest_a
 				"exchange_rate": exchange_rate,
 				"repayment_field": "fine_discount"
 			})
+
+		# if flt(other_discounts):
+		# 	journal_entry.append("accounts", {
+		# 		"account": default_discount_account,
+		# 		"debit_in_account_currency": other_discounts,
+		# 		"exchange_rate": exchange_rate,
+		# 		"repayment_field": "fine_discount"
+		# 	})
 
 		if flt(_capital_amount):
 			journal_entry.append("accounts", {
@@ -439,7 +448,7 @@ def make_payment_entry(doctype, docname, paid_amount, capital_amount, interest_a
 		journal_entry.submit()
 		return journal_entry
 
-	_paid_amount = flt(paid_amount)
+	_paid_amount = flt(paid_amount) + flt(other_discounts)
  	rate = exchange_rate if loan.customer_currency == "USD" else 1.000
 
 	while _paid_amount > 0.000:

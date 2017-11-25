@@ -25,15 +25,14 @@ class TablaAmortizacion(Document):
 		current_duty = flt(self.capital) + flt(self.interes) + flt(self.fine) + round(self.insurance / exchange_rate)
 
 		today = frappe.utils.nowdate()
-
 		# ok, let's see if the repayment has been fully paid
 		if orignal_duty == current_duty and str(self.fecha) < today:
 
 			self.estado = OVERDUE
-		elif orignal_duty == current_duty:
+		elif  orignal_duty == current_duty:
 
 			self.estado = PENDING
-		elif current_duty == 0.0:
+		elif current_duty <= 0.5:
 
 			self.estado = FULLY_PAID
 		elif current_duty < orignal_duty and current_duty > 0:

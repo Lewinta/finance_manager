@@ -8,6 +8,10 @@ from frappe.utils import flt, nowdate
 
 def calculate_fines():
 
+	if frappe.conf.get("developer_mode"):
+		return # as we are in development yet
+
+
 	# global defaults
 	fine = frappe.db.get_single_value("FM Configuration", "vehicle_fine")
 	grace_days = frappe.db.get_single_value("FM Configuration", "grace_days")
@@ -160,6 +164,9 @@ def get_expired_insurance_description():
 	return description
 
 def update_insurance_status():
+	if frappe.conf.get("developer_mode"):
+		return # as we are in development yet
+
 	current_date = frappe.utils.nowdate()
 
 	insurance_list = frappe.get_list("Poliza de Seguro", {

@@ -2,6 +2,7 @@
 
 import frappe
 from datetime import date
+from frappe.utils import flt
 
 from fm.api import PENDING
 
@@ -52,4 +53,28 @@ def s_sanitize(string):
 		s_sanitized = s_sanitized.replace(pair[0], pair[1])
 
 	return s_sanitized.upper()
+
+@frappe.whitelist()
+def clean_all_fines(loan):
+	_log = ''
+	for r in frappe.get_list('Tabla Amortizacion', {'parent':loan}, 'name'):
+		row = frappe.get_doc('Tabla Amortizacion', r.name)
+		if not row.estado == "SALDADA":
+			_log += 'idx:{0} -> fecha:{1} -> Estatus: {2} \n'.format(row.idx, row.fecha, row.estado)
+			row.fine = 0
+			row.monto_pendiente = row.cuota
+			row.db_update()
+
+	frappe.db.commit()
+	return _log
+
+@frappe.whitelist()
+def add_fine(loan, cuota, mora):
+	mora = flt(mora)
+	row = frappe.get_doc('Tabla Amortizacion', {'parent': loan, 'idx': cuota})
+	row.fine = mora
+	row.monto_pendiente = row.cuota + mora
+	row.db_update()
+	frappe.db.commit()
+
 
