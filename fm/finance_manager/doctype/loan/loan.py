@@ -83,8 +83,12 @@ class Loan(AccountsController):
 		journal_entry.user_remark = _('Desembolso de Prestamo: {0}').format(self.name)
 		journal_entry.company = self.company
 		journal_entry.loan = self.name
-		journal_entry.posting_date = nowdate()
-		journal_entry.cheque_date = nowdate()
+		journal_entry.branch_office = self.branch_office
+		journal_entry.cheque_no = self.asset
+		# journal_entry.posting_date = journal_entry.cheque_date = nowdate()
+		journal_entry.posting_date = journal_entry.cheque_date = self.posting_date
+		# journal_entry.cheque_date = nowdate()
+		journal_entry.document = "DESEMBOLSO"
 
 		journal_entry.multi_currency = 1.000 if self.customer_currency == "USD" else 0.000
 
@@ -134,6 +138,30 @@ class Loan(AccountsController):
 
 		journal_entry.set("accounts", account_amt_list)
 		return journal_entry.as_dict()
+	def add_fine_discount_to_row(self, doctype, docname, fine_discount):
+
+		if not frappe.db.exists(doctype, docname):
+			frappe.throw("¡No se encontro el pagare buscado!")
+			
+		row = frappe.get_doc(doctype, docname)
+
+		if row.estado == "SALDADA":
+			frappe.throw("¡No es posible agregar descuentos a un pagare saldado!")
+			
+		if row.fine < fine_discount: 
+			frappe.throw("¡El descuento a mora no debe ser mayor a la mora!")
+
+		row.monto_pendiente -= fine_discount
+		row.fine_discount += fine_discount
+
+		if row.monto_pendiente < 0:
+			frappe.throw("¡El monto pendiente no puede quedar negativo!")
+
+		if row.fine_discount < 0:
+			frappe.throw("¡El descuento en mora no puede quedar negativo!")
+		self.add_comment("Updated", "<span> agregó ${} de descuento a la mora del pagare No. {} </span>".format(fine_discount, row.idx), frappe.session.user)
+		row.db_update()
+		self.reload()
 
 	def make_payment_entry(self):
 		self.check_permission('write')
@@ -314,6 +342,8 @@ class Loan(AccountsController):
 
 		if total_outstanding_amount == 0.000:
 			self.status = "Repaid/Closed"
+			if not self.closed_date:
+				self.closed_date = frappe.utils.today()
 			# frappe.msgprint("Status is Repaid/Closed")
 			
 

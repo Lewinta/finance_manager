@@ -24,8 +24,12 @@ fixtures = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = "/assets/fm/css/fm.css"
-app_include_js = "/assets/fm/js/fm.js"
+app_include_css = "assets/fm/css/fm.css"
+app_include_js = [
+	"assets/fm/js/fm.js",
+	"assets/fm/js/base_prompt.js",
+	"assets/fm/js/payment_entry_prompt.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/fm/css/fm.css"
@@ -35,7 +39,19 @@ app_include_js = "/assets/fm/js/fm.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Journal Entry" : "public/js/journal_entry.js",
+	"Poliza de Seguro" : "public/js/poliza_de_seguro.js",
+	"Fiadores" : "public/js/fiadores.js",
+	"Customer" : "public/js/customer.js",
+	"Customize Form" : "public/js/customize_form.js",
+	"Journal Entry" : "public/js/journal_entry.js",
+	"Payment Entry" : "public/js/payment_entry.js",
+	"Purchase Invoice" : "public/js/purchase_invoice.js",
+	"ToDo" : "public/js/todo.js",
+	"Translation" : "public/js/translation.js",
+	"Vehicle" : "public/js/vehicle.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 
@@ -69,7 +85,7 @@ after_install = "fm.install.after_install"
 # ------------------
 # See frappe.core.notifications.get_notification_config
 
-# notification_config = "fm.notifications.get_notification_config"
+notification_config = "fm.notifications.get_notification_config"
 
 # Permissions
 # -----------
@@ -112,7 +128,8 @@ scheduler_events = {
 	"daily": [
 		"fm.scheduler.calculate_fines",
 		"fm.scheduler.update_exchange_rates",
-		"fm.scheduler.update_insurance_status"
+		"fm.scheduler.update_insurance_status",
+		"fm.backup.daily"
 	]
 }
 
@@ -147,3 +164,5 @@ scheduler_events = {
 # }
 
 on_session_creation = "fm.api.on_session_creation"
+
+boot_session = "fm.boot.add_insurance_repayments"

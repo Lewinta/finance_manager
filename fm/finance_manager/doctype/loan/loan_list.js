@@ -1,51 +1,46 @@
 frappe.listview_settings['Loan'] = {
-	add_fields: ["status", "docstatus"],
-	onload: function(listview) {
+	"add_fields": ["status", "docstatus"],
+	"onload": (listview) => {
 		var filters = {
 			"status": ["=","Sanctioned"]
-		}
+		};
 
 		if (frappe.user.has_role("Gerente de Operaciones")) {
 			filters = {
-				"status": ["!=","Repaid/Closed"]
-			}
+				"status": ["in","Sanctioned,Fully Disbursed,Partially Disbursed"]
+			};
 		} else if (frappe.user.has_role("Cobros")){
 			filters = {
-				"status": ["!=","Repaid/Closed"],
+				"status": ["in","Sanctioned,Fully Disbursed,Partially Disbursed"],
 				"docstatus": ["=", "1"]
-			}
+			};
 		} else if (frappe.user.has_role("Financiamiento")){
 			$.extend(filters, {
 				"owner": frappe.user.name
-			})
+			});
 		} else if (frappe.user.has_role("Cajera")){
 			filters = {
 				"status": "Fully Disbursed"
-			}
+			};
 		} else if (frappe.user.has_role("Contador")){
 			$.extend(filters, {
 				"docstatus": ["=", "1"]
-			})
+			});
 		}
 
-		frappe.route_options = filters
+		frappe.route_options = filters;
 	},
-
-	// not working
-	// filters: [
-	// 	["status", "!=", "Repaid/Closed"],
-	// 	["docstatus", "!=", 2]
-	// ],
-
-	get_indicator: function(doc) {
+	"get_indicator": (doc) => {
 		if(doc.status === "Sanctioned") {
-			return [__("Sanctioned"), "orange", "status,=,Sanctioned"]
+			return ["Aprobado", "orange", "status,=,Sanctioned"]
+		} else if (doc.status === "Recuperado") {
+			return ["Recuperado", "gray", "status,=,Recuperado"]
 		} else if (doc.status === "Partially Disbursed") {
-			return [__("Partially Disbursed"), "darkgrey", "status,=,Partially Disbursed"]
+			return ["Desembolsado Parcialmente", "darkgrey", "status,=,Partially Disbursed"]
 		} else if(doc.status === "Fully Disbursed") {
-			return [__("Fully Disbursed"), "blue", "status,=,Fully Disbursed"]
+			return ["Activo", "blue", "status,=,Fully Disbursed"]
 		} else if(doc.status === "Repaid/Closed") {
-			return [__("Repaid/Closed"), "green", "status,=,Repaid/Closed"]
+			return ["Completado", "green", "status,=,Repaid/Closed"]
 		}
 	}
 }

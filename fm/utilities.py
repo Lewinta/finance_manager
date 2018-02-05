@@ -56,25 +56,28 @@ def s_sanitize(string):
 
 @frappe.whitelist()
 def clean_all_fines(loan):
-	_log = ''
+	_log = 'done'
+	doc = frappe.get_doc('Loan',loan)
 	for r in frappe.get_list('Tabla Amortizacion', {'parent':loan}, 'name'):
 		row = frappe.get_doc('Tabla Amortizacion', r.name)
 		if not row.estado == "SALDADA":
-			_log += 'idx:{0} -> fecha:{1} -> Estatus: {2} \n'.format(row.idx, row.fecha, row.estado)
+			row.monto_pendiente = row.monto_pendiente - row.fine
 			row.fine = 0
-			row.monto_pendiente = row.cuota
 			row.db_update()
 
-	frappe.db.commit()
+	#Let's leave some trace
+	doc.add_comment("Updated", "<span>Eliminó todas las moras de este prestamo.</span>", frappe.session.user)			
 	return _log
 
 @frappe.whitelist()
-def add_fine(loan, cuota, mora):
+def add_fine(loan,cuota,mora):
+	doc = frappe.get_doc('Loan',loan)
 	mora = flt(mora)
 	row = frappe.get_doc('Tabla Amortizacion', {'parent': loan, 'idx': cuota})
-	row.fine = mora
-	row.monto_pendiente = row.cuota + mora
+	row.fine += mora
+	row.monto_pendiente = row.monto_pendiente + mora
 	row.db_update()
-	frappe.db.commit()
 
+	#Let's leave some trace
+	doc.add_comment("Updated", "<span>Agregó  ${} de mora a la cuota No. {}.</span>".format(mora, cuota), frappe.session.user)			
 

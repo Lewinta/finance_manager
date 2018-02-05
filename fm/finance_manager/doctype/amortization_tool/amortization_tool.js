@@ -30,7 +30,7 @@ frappe.ui.form.on('Amortization Tool', {
 		frm.trigger("toggle_fields")
 
 		// load defaults from the server
-		frm.trigger("clear_and_set_defautls")
+		//frm.trigger("clear_and_set_defautls")
 
 		// user should not be able to save this form
 		frm.disable_save()
@@ -63,7 +63,7 @@ frappe.ui.form.on('Amortization Tool', {
 		var mandatory_fields = [
 			"gross_loan_amount",
 			"rate_of_interest",
-			"legal_expenses_rate",
+			//"legal_expenses_rate",
 			"loan_amount",
 			"repayment_periods"
 		]
@@ -141,34 +141,33 @@ frappe.ui.form.on('Amortization Tool', {
 		// update the table so the user can see it is empty
 		frm.refresh_field("repayment_schedule")
 
-		// this is the success callback func
-		var callback = function(response) {
-			var field_dict = response.message
-
-			// let's see if the server sent something back
-			if ( !field_dict ) {
-				return 1 // exit code 1
-			}
-
-			// for each field that we got in the response
-			// let us set it to this form so the user
-			// can see the results
-			$.each(frm._field_list, function(key, field) {
-				frm.set_value(field, field_dict[field])
-			})
-
-			// update the form
-			frm.refresh_fields()
-			frm.trigger("fix_table_header")
-			
-			frappe.dom.unfreeze()
-		}
-
 		// unfreeze it after 5 secs, just in case!
 		setTimeout(function() { frappe.dom.unfreeze() }, 5000)
 
 		// ok, we're ready now to send the request to the server
-		$c('runserverobj', { "docs": frm.doc, "method": "calculate_everything" }, callback)
+		frappe.call({ "method": "calculate_everything", "doc": frm.doc}).done((response) => {
+
+				var field_dict = response.message
+
+				// let's see if the server sent something back
+				if ( !field_dict ) {
+					return 1 // exit code 1
+				}
+
+				// for each field that we got in the response
+				// let us set it to this form so the user
+				// can see the results
+				$.each(frm._field_list, function(key, field) {
+					frm.set_value(field, field_dict[field])
+				})
+
+				// update the form
+				frm.reload_doc()
+				frm.trigger("fix_table_header")
+				
+				frappe.dom.unfreeze()
+			}
+		).fail(() => frappe.msgprint("Roger we have a problem!"))
 	},
 	fix_table_header: function(frm) { setTimeout(
 		function() {
@@ -194,13 +193,13 @@ frappe.ui.form.on('Amortization Tool', {
 			balance_capital.html("Bal.<br>Capital")
 
 			balance_interes = $("[data-fieldname=repayment_schedule] [data-fieldname=balance_interes] .static-area.ellipsis:first")
-			balance_interes.html("Bal.<br>Interes")
+			balance_interes.html("Bal.<br>Comision")
 
 			capital_acumulado = $("[data-fieldname=repayment_schedule] [data-fieldname=capital_acumulado] .static-area.ellipsis:first")
 			capital_acumulado.html("Capital<br>Acum.")
 
 			interes_acumulado = $("[data-fieldname=repayment_schedule] [data-fieldname=interes_acumulado] .static-area.ellipsis:first")
-			interes_acumulado.html("Interes<br>Acum.")
+			interes_acumulado.html("Comision<br>Acum.")
 
 			pagos_acumulados = $("[data-fieldname=repayment_schedule] [data-fieldname=pagos_acumulados] .static-area.ellipsis:first")
 			pagos_acumulados.html("Pagos<br>Acum.")

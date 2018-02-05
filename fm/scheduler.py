@@ -7,15 +7,17 @@ from fm.api import FULLY_PAID
 from frappe.utils import flt, nowdate
 
 def calculate_fines():
-
-	if frappe.conf.get("developer_mode"):
-		return # as we are in development yet
-
+	# if frappe.conf.get("developer_mode"):
+	# 	return # as we are in development yet
+	print("def calculate_fines")
 
 	# global defaults
-	fine = frappe.db.get_single_value("FM Configuration", "vehicle_fine")
-	grace_days = frappe.db.get_single_value("FM Configuration", "grace_days")
-	fine_rate = flt(fine) / 100.000
+	conf = frappe.get_single("FM Configuration")
+
+	# fine = conf.vehicle_fine
+	grace_days = conf.grace_days
+	pending_or_monthly_amount = conf.pending_or_monthly_amount
+
 
 	# today as string to operate with other dates
 	today = str(nowdate())
@@ -26,22 +28,31 @@ def calculate_fines():
 		due_repayment_list = []
 
 		doc = frappe.get_doc("Loan", loan.name) # load from db
+		
+		fine_rate = flt(doc.fine) / 100.000
+		
+		doc.overdue_amount = 0
+		
 		for row in doc.get("repayment_schedule"):
 
+			# due_date = frappe.utils.add_days(row.fecha, 0.000 if due_payments > 1.000 else int(grace_days))
+			due_date = frappe.utils.add_days(row.fecha, int(grace_days))
 			# date diff in days
-			date_diff = frappe.utils.date_diff(today, row.fecha)
+			date_diff = frappe.utils.date_diff(today, due_date)
 			due_payments = ceil(date_diff / 30.000)
-			due_date = frappe.utils.add_days(row.fecha, 0.000 if due_payments > 1.000 else int(grace_days))
-			new_fine = fine_rate * doc.monthly_repayment_amount * due_payments
+			new_fine = flt(fine_rate) * flt(row.monto_pendiente - row.fine) * due_payments
 
 			if not row.estado == FULLY_PAID and today > str(due_date):
-
+				# print("Row Fine {} new Fine {}".format(row.fine, new_fine))
 				if not ceil(new_fine) == flt(row.fine):
-					row.fine = ceil(new_fine) # setting the new fine
+					# print("Loan {} cuota {}".format(row.parent, row.idx))
+					row.fine = ceil(new_fine) # adding the new fine
 					row.due_date = due_date # setting the new due date
 					doc.due_payments = due_payments # setting the new due payments
 
-					row.monto_pendiente = flt(row.cuota) + flt(row.fine) + flt(row.insurance)
+					# row.monto_pendiente += row.fine # flt(row.cuota) + flt(row.fine) + flt(row.insurance) - flt(row.fine_discount) 
+					row.monto_pendiente = row.get_pending_amount() # flt(row.cuota) + flt(row.fine) + flt(row.insurance) - flt(row.fine_discount) 
+					doc.overdue_amount += row.monto_pendiente 
 					row.update_status()
 
 					# updating
@@ -72,15 +83,15 @@ def create_todo(doc, due_rows):
 		# calculated values
 		total_overdue_amount = flt(row.fine) + flt(doc.monthly_repayment_amount)
 		description_tmp += """<br/><li> Para el pagare vencido de fecha <i>{1}</i> el cargo por mora asciende 
-			a <i>{5} ${2} {6}</i> ademas de <i>{5} ${3} {6} </i> por la cuota de dicho pagare para una deuda total 
+			a <i>{5} ${2} {6}</i> ademas de <i>{5} ${3} {6} </i> pendientes por la cuota de dicho pagare para una deuda total 
 			de <i>{5} ${4}</i> {6} solo por ese pagare.</li>""".encode('utf-8').strip()
 		
 		description_tmp = description_tmp.format(
 			idx +1, # add 1 to make it natural
 			row.due_date,
 			"{0}{1}".format(str(row.fine), ".00" if not "." in str(row.fine) else ""),
-			"{0}{1}".format(str(doc.monthly_repayment_amount), ".00" if not "." in str(doc.monthly_repayment_amount) else ""),
-			"{0}{1}".format(str(total_overdue_amount), ".00" if not "." in str(total_overdue_amount) else ""),
+			"{0}{1}".format(str(row.monto_pendiente - row.fine), ".00" if not "." in str(row.monto_pendiente - row.fine) else ""),
+			"{0}{1}".format(str(row.monto_pendiente), ".00" if not "." in str(row.monto_pendiente) else ""),
 			"RD" if customer_currency == "DOP" else "US",
 			"Pesos" if customer_currency == "DOP" else "Dolares"
 		)
@@ -101,7 +112,7 @@ def create_todo(doc, due_rows):
 		nowdate(),
 		description_tmp.encode("utf-8"),
 		doc.name.encode("utf-8"),
-		"{0}{1}".format(str(total_debt), ".00" if not "." in str(total_debt) else ""),
+		"{0}{1}".format(str(doc.overdue_amount), ".00" if not "." in str(doc.overdue_amount) else ""),
 		"RD" if customer_currency == "DOP" else "US",
 		"Pesos" if customer_currency == "DOP" else "Dolares"
 	)

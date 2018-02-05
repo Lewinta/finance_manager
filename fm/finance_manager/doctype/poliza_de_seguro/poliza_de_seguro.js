@@ -37,6 +37,10 @@ frappe.ui.form.on('Poliza de Seguro', {
 		}
 
 		frm.trigger("beautify_table")
+		
+		if (frm.doc.loan){
+            frm.add_custom_button("Prestamo", () => frappe.set_route(["Form", "Loan", frm.doc.loan]))
+        } 
 	},
 	on_submit: function(frm){
         // create a new Array from the history
@@ -96,12 +100,12 @@ frappe.ui.form.on('Poliza de Seguro', {
 			return 0 // exit code is one
 		} 
 
-		var amount = Math.ceil(frm.doc.amount / 3.000)
+		var amount = Math.ceil(frm.doc.amount / frm.doc.repayments)
 		var date = frm.doc.start_date
 
 		frm.clear_table("cuotas")
 
-		for (index = 0; index < 3; index ++) {
+		for (index = 0; index < frm.doc.repayments; index ++) {
 			frm.add_child("cuotas", { 
 				"date": date, 
 				"amount": amount, 
@@ -112,7 +116,7 @@ frappe.ui.form.on('Poliza de Seguro', {
 		}
 
 		// to make it match with real amount being charged to the customer
-		frm.doc.amount = flt(amount * 3)
+		frm.doc.amount = flt(amount * frm.doc.repayments)
 
 		frm.doc.percentage = frm.doc.amount? frm.doc.initial_payment / frm.doc.amount * 100.000 : 0.000
 

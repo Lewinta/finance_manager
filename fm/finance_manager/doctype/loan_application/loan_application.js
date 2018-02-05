@@ -19,6 +19,9 @@ frappe.ui.form.on('Loan Application', {
 		setTimeout(function() {
 			$("[data-fieldname=description]").css("height", 94)
 		}, 100)
+		if(frm.doc.__islocal){
+			frm.set_value("fine", frappe.boot.fm_configuration.vehicle_fine)
+		}
 	},
 	validate: function(frm) {
 		// if the customer does not have a default currency set

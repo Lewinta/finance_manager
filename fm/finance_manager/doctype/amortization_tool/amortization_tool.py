@@ -12,6 +12,7 @@ class AmortizationTool(Document):
 		from fm.accounts import make_simple_repayment_schedule
 
 		make_simple_repayment_schedule(self)
+		self.save()
 
 		return self
 

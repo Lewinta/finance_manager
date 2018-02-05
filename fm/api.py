@@ -114,10 +114,7 @@ def get_voucher_type(mode_of_payment):
 @frappe.whitelist()
 def next_repayment(loan):
 	doc = frappe.get_doc("Loan", loan)
-
-	for repayment in doc.repayment_schedule:
-		if not repayment.estado == FULLY_PAID:
-			return repayment # the first found in the table
+	return doc.next_repayment()
 
 def get_exchange_rates(base):
 	from frappe.email.queue import send
@@ -144,7 +141,7 @@ def get_exchange_rates(base):
 
 	if not rates:
 		send(
-			recipients=["yefri@soldeva.com"],
+			recipients=["yefritavarez@gmail.com"],
 			sender="yefritavarez@gmail.com",
 			subject="No rates when requesting to openexchangerates.org",
 			message="There was an error while fetching today's rates",
@@ -287,4 +284,7 @@ def customer_autoname(doc, event):
 
 def on_session_creation():
 	msg = "User {} has now logged in at {}".format(frappe.session.user, frappe.utils.now_datetime())
-	frappe.publish_realtime(event="msgprint", message=msg, user="yefri@soldeva.com")
+
+	users = ["lewin.villar@gmail.com", "yefritavarez@gmail.com"]
+	for user in users:
+		frappe.publish_realtime(event="msgprint", message=msg, user=user)

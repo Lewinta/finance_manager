@@ -8,7 +8,7 @@ from frappe.model.document import Document
 
 from math import ceil
 from frappe.utils import flt
-from fm.api import FULLY_PAID, PENDING
+from fm.api import FULLY_PAID, PENDING, OVERDUE
 
 
 class PolizadeSeguro(Document):
@@ -46,6 +46,7 @@ class PolizadeSeguro(Document):
 		pinv.supplier = self.insurance_company
 		pinv.is_paid = 1.000
 		pinv.company = company.name
+		pinv.branch_office = self.branch_office
 		pinv.mode_of_payment = frappe.db.get_single_value("FM Configuration", "mode_of_payment")
 		pinv.cash_bank_account = company.default_bank_account
 		pinv.paid_amount = self.amount
@@ -79,23 +80,10 @@ class PolizadeSeguro(Document):
 
 		loan = frappe.get_doc("Loan", self.loan)
 
-		curex = frappe.get_value("Currency Exchange", 
-			{"from_currency": "USD", "to_currency": "DOP"}, "exchange_rate")
-
-		exchange_rate = curex if loan.customer_currency == "USD" else 1.000
-
 		stock_received = frappe.db.get_single_value("FM Configuration", "goods_received_but_not_billed")
-
-		self.total_amount = self.total_amount / exchange_rate
-		self.initial_payment = self.initial_payment / exchange_rate
-		amount_in_account_currency = self.amount / exchange_rate
-		third_amount_in_account_currency = ceil(amount_in_account_currency / 3.000)
-
-		self.amount = third_amount_in_account_currency * 3.000
-
-		new_amount_in_account_currency = self.amount * exchange_rate
+        
 		for insurance in self.cuotas:
-			insurance.amount = self.amount / 3.000
+			insurance.amount = flt(self.amount / self.repayments, 2)
 
 			insurance.db_update()
 
@@ -127,14 +115,19 @@ class PolizadeSeguro(Document):
 			
 			loan_row.db_update()
 
+		# # if not amount is found then exit
+		# if not self.amount: return 0.000
+		if not self.initial_payment: return 0.000
+
 		jv = frappe.new_doc("Journal Entry")
 		jv.voucher_type = "Journal Entry"
+		jv.document = 'POLIZA'
 		jv.company = loan.company
 		jv.posting_date = frappe.utils.nowdate()
 
 		jv.append("accounts", {
 			"account": stock_received,
-			"credit_in_account_currency": new_amount_in_account_currency
+			"credit_in_account_currency": self.amount
 		})
 
 		jv.append("accounts", {
@@ -171,7 +164,7 @@ class PolizadeSeguro(Document):
 				{ "insurance_doc": insurance.name })
 
 			# if by any chance the repayment status is not pending
-			if not loan_row.estado == PENDING:
+			if not loan_row.estado in [PENDING, OVERDUE]:
 				frappe.throw("No puede cancelar este seguro porque ya se ha efectuado un pago en contra del mismo!")
 
 			# unlink this insurance row from the repayment
@@ -180,10 +173,11 @@ class PolizadeSeguro(Document):
 			# clear any other amount
 			loan_row.insurance = 0.000
 
-			# pending amount will be what the customer has to pay for this repayment
-			pending_amount = flt(loan_row.capital) + flt(loan_row.interes) + flt(loan_row.fine)
-
-			loan_row.monto_pendiente = pending_amount
+			# Let's make sure we change paid amount only if was paid 
+			if loan_row.monto_pagado > insurance.amount:
+				# pending amount will be what the customer has to pay for this repayment
+				loan_row.monto_pendiente += insurance.amount
+				loan_row.monto_pagado -= insurance.amount
 
 			loan_row.db_update()
 
@@ -208,6 +202,8 @@ class PolizadeSeguro(Document):
 			pinv.delete()
 
 	def create_first_payment(self):
+		# if not amount is found then exit
+		if not self.initial_payment: return 0.000
 
 		loan = frappe.get_doc("Loan", self.loan)
 
@@ -215,6 +211,7 @@ class PolizadeSeguro(Document):
 
 		jv = frappe.new_doc("Journal Entry")
 		jv.voucher_type = "Cash Entry"
+		jv.document = 'POLIZA'
 		jv.company = loan.company
 		jv.posting_date = frappe.utils.nowdate()
 
@@ -270,13 +267,13 @@ class PolizadeSeguro(Document):
 
 		# append the roles that are going to be able to see this events 
 		# in the calendar and in the doctype's view
-		event.append("roles", {
-			"role": "Cobros"
-		})
+		# event.append("roles", {
+		# 	"role": "Cobros"
+		# })
 
-		event.append("roles", {
-			"role": "Gerente de Operaciones"
-		})
+		# event.append("roles", {
+		# 	"role": "Gerente de Operaciones"
+		# })
 
 		event.flags.ignore_permissions = True
 		event.insert()
