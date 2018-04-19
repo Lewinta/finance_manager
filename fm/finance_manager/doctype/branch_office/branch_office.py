@@ -36,11 +36,15 @@ class BranchOffice(Document):
 		return usr
 
 	def refresh_users(self):
+		collection_user = [d for d in self.users if d.collection_user]
 		self.users = []
 		users = frappe.get_list("User Permission", { "allow": "Branch Office", "for_value": self.name}, ["user", "full_name"])
 		for user in users:
+			if collection_user and user.user == collection_user[0].user:
+				user.collection_user = 1
 			self.append("users",user)
 		self.save()
+
 
 
 		

@@ -29,6 +29,9 @@ frappe.ui.form.on("Payment Entry", {
             }
         })
     },
+    refresh: function(frm) {
+        frm.doc.docstatus < 1 && frm.set_value("branch_office", frappe.boot.sucursal)
+    },
     es_un_pagare: function(frm){
 
         // validate is the checkbox is checked first

@@ -4,6 +4,9 @@ frappe.ui.form.on("Purchase Invoice", {
             frm.set_intro("Valide este documento para confirmar que se ha finalizado con la compra!")
         }
     },
+    refresh: function(frm) {
+        frm.doc.docstatus < 1 && frm.set_value("branch_office", frappe.boot.sucursal)
+    },
     on_submit: function(frm) {
         // create a new Array from the history
         var new_history = Array.from(frappe.route_history)

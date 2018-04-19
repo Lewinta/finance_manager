@@ -50,6 +50,7 @@ class PolizadeSeguro(Document):
 		pinv.mode_of_payment = frappe.db.get_single_value("FM Configuration", "mode_of_payment")
 		pinv.cash_bank_account = company.default_bank_account
 		pinv.paid_amount = self.amount
+		pinv.sucursal = frappe.get_value("User Branch Office",{"user":frappe.session.user},["parent"]) or "SANTO DOMINGO"
 		pinv.base_paid_amount = self.amount
 
 		# ensure this doc is linked to the new purchase
@@ -123,6 +124,7 @@ class PolizadeSeguro(Document):
 		jv.voucher_type = "Journal Entry"
 		jv.document = 'POLIZA'
 		jv.company = loan.company
+		jv.branch_office = frappe.get_value("User Branch Office",{"user":frappe.session.user},["parent"]) or "SANTO DOMINGO"
 		jv.posting_date = frappe.utils.nowdate()
 
 		jv.append("accounts", {
@@ -160,27 +162,30 @@ class PolizadeSeguro(Document):
 		self.delete_payment()
 		for index, insurance in enumerate(self.cuotas):
 			# now, let's fetch from the database the corresponding repayment
-			loan_row = frappe.get_doc("Tabla Amortizacion", 
-				{ "insurance_doc": insurance.name })
+			if frappe.db.exists("Tabla Amortizacion", { "insurance_doc": insurance.name }):
+			
+				loan_row = frappe.get_doc("Tabla Amortizacion", 
+					{ "insurance_doc": insurance.name })
 
-			# if by any chance the repayment status is not pending
-			if not loan_row.estado in [PENDING, OVERDUE]:
-				frappe.throw("No puede cancelar este seguro porque ya se ha efectuado un pago en contra del mismo!")
+				# if by any chance the repayment status is not pending
+				if not loan_row.estado in [PENDING, OVERDUE]:
+					frappe.throw("No puede cancelar este seguro porque ya se ha efectuado un pago en contra del mismo!")
 
-			# unlink this insurance row from the repayment
-			loan_row.insurance_doc = ""
+				# unlink this insurance row from the repayment
+				loan_row.insurance_doc = ""
 
-			# clear any other amount
-			loan_row.insurance = 0.000
+				# clear any other amount
+				loan_row.insurance = 0.000
 
-			# Let's make sure we change paid amount only if was paid 
-			if loan_row.monto_pagado > insurance.amount:
+				# Let's make sure we change paid amount only if was paid 
+				if loan_row.monto_pagado > insurance.amount:
+					loan_row.monto_pagado -= insurance.amount
+
 				# pending amount will be what the customer has to pay for this repayment
-				loan_row.monto_pendiente += insurance.amount
-				loan_row.monto_pagado -= insurance.amount
-
-			loan_row.db_update()
-
+				loan_row.monto_pendiente = loan_row.get_pending_amount()
+				
+				loan_row.db_update()
+				
 		self.delete_payment()
 		self.delete_purchase_invoice()
 
@@ -214,6 +219,7 @@ class PolizadeSeguro(Document):
 		jv.document = 'POLIZA'
 		jv.company = loan.company
 		jv.posting_date = frappe.utils.nowdate()
+		jv.branch_office = frappe.get_value("User Branch Office",{"user":frappe.session.user},["parent"]) or "SANTO DOMINGO"
 
 		jv.append("accounts", {
 			"account": loan.payment_account,

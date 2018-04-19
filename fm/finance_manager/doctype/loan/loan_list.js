@@ -15,9 +15,9 @@ frappe.listview_settings['Loan'] = {
 				"docstatus": ["=", "1"]
 			};
 		} else if (frappe.user.has_role("Financiamiento")){
-			$.extend(filters, {
-				"owner": frappe.user.name
-			});
+			// $.extend(filters, {
+			// 	"owner": frappe.user.name
+			// });
 		} else if (frappe.user.has_role("Cajera")){
 			filters = {
 				"status": "Fully Disbursed"

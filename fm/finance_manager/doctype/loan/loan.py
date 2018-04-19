@@ -346,6 +346,17 @@ class Loan(AccountsController):
 				self.closed_date = frappe.utils.today()
 			# frappe.msgprint("Status is Repaid/Closed")
 			
+	def update_payment_date(self, disbursement_date):
+		#this function allows the user to change the payment date for all repayments so the customer can pay on-time
+		self.disbursement_date = disbursement_date
+		self.db_update()
+		for i in frappe.get_list("Tabla Amortizacion", {"parent":self.name}):
+			row = frappe.get_doc("Tabla Amortizacion", i.name)
+			tmp = frappe.utils.add_months(self.disbursement_date, row.idx)
+			print("Loan:{} idx:{} fecha:{} updated to:{} ".format(row.parent, row.idx, row.fecha, tmp))
+			row.fecha = tmp
+			row.db_update()
+
 
 def check_repayment_method(repayment_method, loan_amount, monthly_repayment_amount, repayment_periods):
 	if repayment_method == "Repay Over Number of Periods" and not repayment_periods:

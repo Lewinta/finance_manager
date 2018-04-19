@@ -4,8 +4,6 @@ import os
 from datetime import datetime
 
 def daily():
-	if 5 > 4:
-		return # as we are in development yet
 
 	db_name = "fimax"
 

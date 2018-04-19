@@ -2,6 +2,7 @@ frappe.ui.form.on("Poliza de Seguro", {
     "refresh": (frm) => {
         frm.is_new() && frm.set_value("repayments", frappe.boot.insurance_repayments);
         frm.is_new() && ! frm.doc.loan && frm.trigger("fetch_loan");
+        frm.doc.docstatus < 1 && frm.set_value("branch_office", frappe.boot.sucursal);
     },
     "repayments": (frm) => frm.trigger("total_amount"),
     "fetch_loan": (frm) => {

@@ -90,6 +90,11 @@ frappe.ui.form.on('Loan', {
 		let expense_rate_dec = flt(frm.doc.legal_expense_rate / 100.000);
 		frm.set_value("loan_amount", frm.doc.gross_loan_amount * (expense_rate_dec +1.000));
 	},
+	"disbursement_date": (frm) => {
+		if (frm.doc.disbursement_date){
+			frm.set_value("entrega_voluntaria", frm.doc.disbursement_date);
+		}
+	},
 	"make_jv": (frm) => {
 		frm.call("make_jv_entry", "args").then((response) => {
 			let doc = response.message;
@@ -456,7 +461,7 @@ frappe.ui.form.on('Loan', {
 
 			$("[data-fieldname=repayment_schedule] [data-fieldname=balance_interes] \
 				.static-area.ellipsis:first")
-			.html("Bal.<br>Interes");
+			.html("Bal.<br>Comision");
 
 			$("[data-fieldname=repayment_schedule] [data-fieldname=capital_acumulado] \
 				.static-area.ellipsis:first")
@@ -586,6 +591,7 @@ frappe.ui.form.on('Loan', {
 			"label": "Monto Recibido (DOP)",
 			"reqd": 1,
 			"precision": 2,
+			"description": "Monto recibido por parte del cliente (Incluyendo Gastos Recuperacion)",
 			"default": next_pagare.monto_pendiente
 		}, {
 			"fieldname": "mode_of_payment",
@@ -748,6 +754,7 @@ frappe.ui.form.on('Loan', {
 					"capital_amount": next_pagare.capital,
 					"interest_amount": next_pagare.interes,
 					"paid_amount": flt(data.paid_amount) + flt(data.fine_discount),
+					"sucursal": frappe.boot.sucursal,
 					"validate_payment_entry": data.validate_payment_entry? true: false
 				});
 
@@ -769,10 +776,7 @@ frappe.ui.form.on('Loan', {
 					
 					if (name) {
 						// let's show the user the new payment entry
-						frappe.set_route("List", "Journal Entry", { 
-							"loan": frm.docname,
-							"es_un_pagare": "1"
-						});
+						frappe.set_route("Form", "Journal Entry", name);
 					}
 				}, () => frappe.msgprint("¡Hubo un problema mientras se creaba la Entrada de Pago!"));
 			}, () => frm.payment_entry_prompt.show());

@@ -23,7 +23,7 @@ def calculate_fines():
 	today = str(nowdate())
 
 	# let's begin
-	for loan in frappe.get_list("Loan", { "docstatus": "1", "status": "Fully Disbursed" }):
+	for loan in frappe.get_list("Loan", { "docstatus": "1", "status": ["in", "Fully Disbursed, Recuperado"] }):
 
 		due_repayment_list = []
 
@@ -101,10 +101,16 @@ def create_todo(doc, due_rows):
 	# ok, let's begin
 	t = frappe.new_doc("ToDo")
 
+	allocated_to = frappe.get_value("User Branch Office", {
+		"parent": doc.branch_office,
+		"collection_user": 1
+	}, ["user"])
+
 	t.assigned_by = allocated_to
 	t.owner = allocated_to
 	t.reference_type = doc.doctype
 	t.reference_name = doc.name
+	t.branch_office = doc.branch_office
 
 	t.description = description.encode("utf-8").format(
 		doc.customer.encode("utf-8"), 

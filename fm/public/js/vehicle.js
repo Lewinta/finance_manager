@@ -2,6 +2,7 @@ frappe.ui.form.on('Vehicle', {
 	refresh: function(frm) {
 		if(frm.doc.__islocal){
 			frm.set_value("employee", frappe.session.user)
+			frm.set_value("branch_office", frappe.boot.sucursal)
 		}
 	},
 	validate: function(frm) {

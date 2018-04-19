@@ -5,7 +5,7 @@ frappe.listview_settings['Loan Application'] = {
 	],
 	onload: function(listview) {
 		frappe.route_options = {
-			"owner": frappe.user.name,
+			//"owner": frappe.user.name,
 			"docstatus": ["!=", "2"],
 			"status": ["!=", "Rejected"]
 		}

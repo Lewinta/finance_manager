@@ -10,7 +10,7 @@ frappe.ui.form.on('Amortization Tool', {
 			"repayment_method",
 			"repayment_periods",
 			"rate_of_interest",
-			"legal_expenses_rate",
+			"legal_expense_rate",
 			"loan_amount",
 			"monthly_repayment_amount",
 			"total_payment",
@@ -19,11 +19,14 @@ frappe.ui.form.on('Amortization Tool', {
 		]
 	},
 	refresh: function(frm) {
-		frm.add_custom_button(__("Clear"), function(event) {
+		frm.add_custom_button(__("Limpiar"), function(event) {
 			frm.trigger("clear_and_set_defautls")
 		})
 		frm.add_custom_button(__("Calculate"), function(event) {
 			frm.trigger("calculate_everything")
+		})
+		frm.add_custom_button(__("Hacer Solicitud"), function(event) {
+			frm.trigger("make_loan_application")
 		})
 
 		// to toggle the fields from at load time
@@ -44,14 +47,14 @@ frappe.ui.form.on('Amortization Tool', {
 		frm.trigger("fix_table_header")
 	},
 	gross_loan_amount: function(frm) {
-		var expense_rate_dec = frm.doc.legal_expenses_rate / 100
+		var expense_rate_dec = frm.doc.legal_expense_rate / 100
 		var loan_amount = frm.doc.gross_loan_amount * (expense_rate_dec + 1)
 		frm.set_value("loan_amount", loan_amount)
 	},
 	rate_of_interest: function(frm) {
 		frm.trigger("gross_loan_amount")
 	},
-	legal_expenses_rate: function(frm) {
+	legal_expense_rate: function(frm) {
 		frm.trigger("gross_loan_amount")
 	},
 	repayment_periods: function(frm) {
@@ -63,7 +66,7 @@ frappe.ui.form.on('Amortization Tool', {
 		var mandatory_fields = [
 			"gross_loan_amount",
 			"rate_of_interest",
-			//"legal_expenses_rate",
+			//"legal_expense_rate",
 			"loan_amount",
 			"repayment_periods"
 		]
@@ -168,6 +171,29 @@ frappe.ui.form.on('Amortization Tool', {
 				frappe.dom.unfreeze()
 			}
 		).fail(() => frappe.msgprint("Roger we have a problem!"))
+	},
+	make_loan_application: function(frm) {
+
+		// point to the method that we're executing now
+		var method = "fm.finance_manager.doctype.amortization_tool.amortization_tool.make_loan_application"
+		
+		// the args that it requires
+		var args = {
+			"source_name": frm.docname
+		}
+
+		// callback to be executed after the server responds
+		var callback = function(response) {
+
+			// check to see if there is something back
+			if (!response.message) 
+				return 1 // exit code is 1
+
+			var doc = frappe.model.sync(response.message)
+			frappe.set_route("Form", response.message.doctype, response.message.name)
+		}
+
+		frappe.call({ "method": method, "args": args, "callback": callback })
 	},
 	fix_table_header: function(frm) { setTimeout(
 		function() {

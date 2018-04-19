@@ -66,6 +66,7 @@ frappe.ui.form.on("Journal Entry", {
             frappe.hide_msgprint()
         },1500)
 
+        frm.doc.docstatus < 1 && frm.set_value("branch_office", frappe.boot.sucursal)
         if (frm.doc.loan){
             frm.add_custom_button("Prestamo", () => frappe.set_route(["Form", "Loan", frm.doc.loan]))
         }  

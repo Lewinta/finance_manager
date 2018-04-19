@@ -34,9 +34,13 @@ frappe.ui.form.on("Phone Number", "number", function(frm, cdt, cdn){
 })
 
 frappe.ui.form.on("Referencia", {
-    full_name: function(frm, cdt, cdn){
+    first_name: function(frm, cdt, cdn){
         var row = locals[cdt][cdn]; 
-        frappe.model.set_value(cdt, cdn, "full_name", row.full_name.trim().toUpperCase());
+        frappe.model.set_value(cdt, cdn, "first_name", row.first_name.trim().toUpperCase());
+    },
+    last_name: function(frm, cdt, cdn){
+        var row = locals[cdt][cdn]; 
+        frappe.model.set_value(cdt, cdn, "last_name", row.last_name.trim().toUpperCase());
     },
     address: function(frm, cdt, cdn){
         var row = locals[cdt][cdn]; 

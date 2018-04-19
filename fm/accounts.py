@@ -16,9 +16,10 @@ def submit_journal(doc, event):
 		# load the loan from the database
 		loan = frappe.get_doc("Loan", doc.loan)
 
-		curex = frappe.get_doc("Currency Exchange", 
-			{"from_currency": "USD", "to_currency": "DOP"})
-
+		curex = frappe.get_doc("Currency Exchange", {
+			"from_currency": "USD",
+			"to_currency": "DOP"
+		})
 
 		if not loan.total_payment == doc.total_debit:
 			frappe.throw("¡El monto desembolsado difiere del monto del prestamo!")
@@ -331,6 +332,7 @@ def make_payment_entry(opts, create_jv=True):
 			"cheque_no": opts.reference_name or "",
 			"user_remark": opts.user_remark or 'Pagare de Prestamo: %s' % loan.name,
 			"company": loan.company,
+			"branch_office": opts.sucursal,
 			"posting_date": opts.posting_date,
 			"es_un_pagare": 1,
 			"ttl_fine": opts.ttl_fine,
@@ -493,6 +495,7 @@ def make_payment_entry(opts, create_jv=True):
 	loan.db_update()
 	refresh_loan_totals(loan.name)
 
+	return payment_entry.name
 
 @frappe.whitelist() # deprecated by Yefri 
 def cashier_control(frm, data):

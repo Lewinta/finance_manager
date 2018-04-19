@@ -16,6 +16,7 @@ frappe.ui.form.on('Loan Application', {
 	refresh: function(frm) {
 		frm.trigger("toggle_fields")
 		frm.trigger("add_toolbar_buttons")
+		frm.doc.docstatus < 1 && frm.set_value("branch_office", frappe.boot.sucursal)
 		setTimeout(function() {
 			$("[data-fieldname=description]").css("height", 94)
 		}, 100)
